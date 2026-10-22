@@ -1,0 +1,62 @@
+:root {
+  --bg: #0f172a;
+  --card: #1e293b;
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --accent: #a78bfa;
+  --danger: #f87171;
+  --ok: #4ade80;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+}
+
+a { color: var(--accent); text-decoration: none; }
+h1, h2 { margin-bottom: 16px; }
+
+.container { max-width: 1000px; margin: 0 auto; padding: 24px 16px; }
+
+.navbar {
+  display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: wrap; gap: 12px;
+  padding: 16px 5%; border-bottom: 1px solid var(--card);
+}
+.navbar nav { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.logo { font-weight: 700; font-size: 1.3rem; color: var(--text); }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
+.card { background: var(--card); padding: 18px; border-radius: 10px; border: 1px solid transparent; }
+.card:hover { border-color: var(--accent); }
+
+.muted { color: var(--muted); font-size: 0.9rem; }
+.price { font-size: 1.2rem; font-weight: 700; margin: 8px 0; }
+.error { color: var(--danger); }
+.success { color: var(--ok); }
+
+input, select, textarea {
+  background: var(--bg); color: var(--text);
+  border: 1px solid #334155; padding: 8px 10px; border-radius: 6px; font: inherit;
+}
+
+.btn {
+  background: var(--accent); color: var(--bg); border: none;
+  padding: 8px 14px; border-radius: 6px; cursor: pointer; font: inherit; font-weight: 600;
+}
+.btn:hover { opacity: 0.85; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn.secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+.btn.danger { background: var(--danger); color: #fff; }
+
+.form { display: flex; flex-direction: column; gap: 12px; max-width: 380px; margin: 40px auto; }
+.filters { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+.row {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 12px; flex-wrap: wrap; padding: 12px 0; border-bottom: 1px solid #334155;
+}
+.pagination { display: flex; gap: 12px; align-items: center; justify-content: center; margin-top: 24px; }
