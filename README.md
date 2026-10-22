@@ -17,6 +17,7 @@ React, React Router, Axios, Vite
 ![Products](screenshots/products.png)
 ![Cart](screenshots/cart.png)
 ![Orders](screenshots/orders.png)
+![Insufficient-Stock](screenshotsinsufficient-stock.png)
 
 ## Run locally
 1. Start the [backend](https://github.com/mohanrajtunes/shopflow-backend)
