@@ -141,7 +141,17 @@ export default function Products() {
               style={{ animationDelay: `${i * 70}ms` }}
               key={p.id}
             >
-              <div className="thumb">{(p.category_name || p.title)[0].toUpperCase()}</div>
+              {p.image_url ? (
+                <img
+                  className="thumb-img"
+                  src={p.image_url}
+                  alt={p.title}
+                  loading="lazy"
+                  onError={(e) => { e.currentTarget.style.display = "none"; }}
+                />
+              ) : (
+                <div className="thumb">{(p.category_name || p.title)[0].toUpperCase()}</div>
+              )}
               <span className="badge">{p.category_name || "General"}</span>
               <h3>{p.title}</h3>
               <p className="muted desc">{p.description}</p>

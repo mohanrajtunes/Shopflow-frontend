@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import api, { errorText } from "../api";
 import { useAuth } from "../AuthContext";
 
-const emptyForm = { title: "", description: "", price: "", stock: "", category: "" };
+const emptyForm = { title: "", description: "", price: "", stock: "", category: "", image_url: "" };
 
 export default function VendorDashboard() {
   const { user } = useAuth();
@@ -49,6 +49,7 @@ export default function VendorDashboard() {
       price: form.price,
       stock: Number(form.stock),
       category: form.category || null,
+      image_url: form.image_url,
     };
     try {
       if (editingId) {
@@ -74,6 +75,7 @@ export default function VendorDashboard() {
       price: p.price,
       stock: p.stock,
       category: p.category ?? "",
+      image_url: p.image_url ?? "",
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -104,6 +106,7 @@ export default function VendorDashboard() {
         <textarea name="description" placeholder="Description" rows={3} value={form.description} onChange={handleChange} required />
         <input name="price" type="number" step="0.01" min="0" placeholder="Price" value={form.price} onChange={handleChange} required />
         <input name="stock" type="number" min="0" placeholder="Stock" value={form.stock} onChange={handleChange} required />
+        <input name="image_url" type="url" placeholder="Image URL (optional)" value={form.image_url} onChange={handleChange} />
         <select name="category" value={form.category} onChange={handleChange}>
           <option value="">No category</option>
           {categories.map((c) => (
@@ -121,9 +124,12 @@ export default function VendorDashboard() {
       {products.length === 0 && <p className="muted">You haven't added any products yet.</p>}
       {products.map((p) => (
         <div className="row" key={p.id}>
-          <div>
-            <strong>{p.title}</strong>
-            <p className="muted">₹{Number(p.price).toFixed(2)} · {p.stock} in stock · {p.category_name || "No category"}</p>
+          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+            {p.image_url && <img className="mini-thumb" src={p.image_url} alt={p.title} />}
+            <div>
+              <strong>{p.title}</strong>
+              <p className="muted">₹{Number(p.price).toFixed(2)} · {p.stock} in stock · {p.category_name || "No category"}</p>
+            </div>
           </div>
           <div>
             <button className="btn secondary" onClick={() => startEdit(p)}>Edit</button>{" "}
