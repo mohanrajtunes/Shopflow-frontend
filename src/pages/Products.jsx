@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import api, { errorText } from "../api";
 import { useAuth } from "../AuthContext";
 
-const PAGE_SIZE = 10; // matches PAGE_SIZE in your Django settings
+const PAGE_SIZE = 10;
 const emptyFilters = { search: "", category: "", min_price: "", max_price: "", ordering: "-created_at" };
 
 export default function Products() {
@@ -14,20 +14,18 @@ export default function Products() {
   const [categories, setCategories] = useState([]);
   const [count, setCount] = useState(0);
   const [page, setPage] = useState(1);
-  const [form, setForm] = useState(emptyFilters);     // what the user is typing
-  const [filters, setFilters] = useState(emptyFilters); // what was actually applied
+  const [form, setForm] = useState(emptyFilters);
+  const [filters, setFilters] = useState(emptyFilters);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
-  // Runs once: load categories for the dropdown
   useEffect(() => {
     api.get("/api/categories/")
       .then(({ data }) => setCategories(data.results ?? data))
       .catch(() => {});
   }, []);
 
-  // Runs whenever the page or the applied filters change
   useEffect(() => {
     const params = { page };
     Object.entries(filters).forEach(([key, value]) => {
@@ -44,6 +42,13 @@ export default function Products() {
       .catch((err) => setError(errorText(err)))
       .finally(() => setLoading(false));
   }, [page, filters]);
+
+  // Toast disappears after 2.5 seconds
+  useEffect(() => {
+    if (!message) return;
+    const t = setTimeout(() => setMessage(""), 2500);
+    return () => clearTimeout(t);
+  }, [message]);
 
   function handleChange(e) {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -66,16 +71,15 @@ export default function Products() {
     setMessage("");
     try {
       await api.post("/api/cart/", { product: product.id, quantity: 1 });
-      setMessage(`Added "${product.title}" to your cart.`);
+      setMessage(`Added "${product.title}" to your cart`);
     } catch (err) {
-      // Your cart has unique (user, product), so a duplicate returns 400: increase quantity instead
       if (err.response?.status === 400) {
         try {
           const { data } = await api.get("/api/cart/");
           const item = (data.results ?? data).find((i) => i.product === product.id);
           if (item) {
             await api.patch(`/api/cart/${item.id}/`, { quantity: item.quantity + 1 });
-            setMessage(`Updated quantity of "${product.title}" in your cart.`);
+            setMessage(`Updated "${product.title}" quantity in your cart`);
             return;
           }
         } catch (err2) {
@@ -90,7 +94,10 @@ export default function Products() {
 
   return (
     <div>
-      <h1>Products</h1>
+      <section className="hero">
+        <h1>Shop from independent vendors</h1>
+        <p className="muted">Browse products, add them to your cart and check out securely.</p>
+      </section>
 
       <form className="filters" onSubmit={applyFilters}>
         <input name="search" placeholder="Search..." value={form.search} onChange={handleChange} />
@@ -111,27 +118,49 @@ export default function Products() {
         <button type="button" className="btn secondary" onClick={resetFilters}>Reset</button>
       </form>
 
-      {message && <p className="success">{message}</p>}
+      {message && <div className="toast">{message}</div>}
       {error && <p className="error">{error}</p>}
-      {loading && <p className="muted">Loading...</p>}
-      {!loading && !error && products.length === 0 && <p className="muted">No products found.</p>}
 
-      <div className="grid">
-        {products.map((p) => (
-          <div className="card" key={p.id}>
-            <h3>{p.title}</h3>
-            <p className="muted">{p.category_name || "Uncategorized"} · by {p.vendor_username}</p>
-            <p>{p.description}</p>
-            <p className="price">₹{Number(p.price).toFixed(2)}</p>
-            <p className="muted">{p.stock > 0 ? `${p.stock} in stock` : "Out of stock"}</p>
-            {(!user || user.role === "customer") && (
-              <button className="btn" disabled={p.stock === 0} onClick={() => addToCart(p)}>
-                Add to cart
-              </button>
-            )}
-          </div>
-        ))}
-      </div>
+      {loading && (
+        <div className="grid">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="card skeleton" />
+          ))}
+        </div>
+      )}
+
+      {!loading && !error && products.length === 0 && (
+        <p className="muted">No products found.</p>
+      )}
+
+      {!loading && (
+        <div className="grid">
+          {products.map((p, i) => (
+            <div
+              className="card product-card fade-up"
+              style={{ animationDelay: `${i * 70}ms` }}
+              key={p.id}
+            >
+              <div className="thumb">{(p.category_name || p.title)[0].toUpperCase()}</div>
+              <span className="badge">{p.category_name || "General"}</span>
+              <h3>{p.title}</h3>
+              <p className="muted desc">{p.description}</p>
+              <p className="muted">Sold by {p.vendor_username}</p>
+              <div className="card-footer">
+                <span className="price">₹{Number(p.price).toFixed(2)}</span>
+                <span className={p.stock <= 3 ? "badge low" : "badge"}>
+                  {p.stock === 0 ? "Out of stock" : p.stock <= 3 ? `Only ${p.stock} left` : "In stock"}
+                </span>
+              </div>
+              {(!user || user.role === "customer") && (
+                <button className="btn" disabled={p.stock === 0} onClick={() => addToCart(p)}>
+                  Add to cart
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="pagination">
         <button className="btn secondary" disabled={page === 1} onClick={() => setPage(page - 1)}>Previous</button>
