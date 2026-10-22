@@ -69,7 +69,7 @@ export default function Cart() {
       {items.length === 0 && <p className="muted">Your cart is empty.</p>}
 
       {items.map((item) => (
-        <div className="row" key={item.id}>
+        <div className="row cart-row" key={item.id}>
           <div>
             <strong>{item.product_title}</strong>
             <p className="muted">₹{Number(item.product_price).toFixed(2)} each</p>

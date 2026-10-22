@@ -60,3 +60,13 @@ input, select, textarea {
   gap: 12px; flex-wrap: wrap; padding: 12px 0; border-bottom: 1px solid #334155;
 }
 .pagination { display: flex; gap: 12px; align-items: center; justify-content: center; margin-top: 24px; }
+.cart-row {
+  display: grid;
+  grid-template-columns: 2fr 1.2fr 1fr auto;
+  align-items: center;
+  gap: 12px;
+}
+.cart-row > div:nth-child(3) { text-align: right; }
+@media (max-width: 600px) {
+  .cart-row { grid-template-columns: 1fr 1fr; }
+}
