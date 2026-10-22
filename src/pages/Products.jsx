@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api, { errorText } from "../api";
 import { useAuth } from "../AuthContext";
+import { optimized } from "../upload";
 
 const PAGE_SIZE = 10;
 const emptyFilters = { search: "", category: "", min_price: "", max_price: "", ordering: "-created_at" };
@@ -144,7 +145,7 @@ export default function Products() {
               {p.image_url ? (
                 <img
                   className="thumb-img"
-                  src={p.image_url}
+                  src={optimized(p.image_url)}
                   alt={p.title}
                   loading="lazy"
                   onError={(e) => { e.currentTarget.style.display = "none"; }}

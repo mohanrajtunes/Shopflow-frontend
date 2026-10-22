@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import api, { errorText } from "../api";
 import { useAuth } from "../AuthContext";
+import { uploadImage, optimized } from "../upload";
 
 const emptyForm = { title: "", description: "", price: "", stock: "", category: "", image_url: "" };
+const MAX_MB = 5;
 
 export default function VendorDashboard() {
   const { user } = useAuth();
@@ -12,6 +14,7 @@ export default function VendorDashboard() {
   const [editingId, setEditingId] = useState(null);
   const [page, setPage] = useState(1);
   const [hasNext, setHasNext] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
@@ -37,6 +40,30 @@ export default function VendorDashboard() {
 
   function handleChange(e) {
     setForm({ ...form, [e.target.name]: e.target.value });
+  }
+
+  async function handleFile(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    setError("");
+
+    if (!file.type.startsWith("image/")) {
+      return setError("Please choose an image file (JPG, PNG or WebP).");
+    }
+    if (file.size > MAX_MB * 1024 * 1024) {
+      return setError(`Image is too large. Maximum size is ${MAX_MB} MB.`);
+    }
+
+    setUploading(true);
+    try {
+      const url = await uploadImage(file);
+      setForm((f) => ({ ...f, image_url: url }));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUploading(false);
+      e.target.value = ""; // lets you pick the same file again
+    }
   }
 
   async function handleSubmit(e) {
@@ -106,17 +133,33 @@ export default function VendorDashboard() {
         <textarea name="description" placeholder="Description" rows={3} value={form.description} onChange={handleChange} required />
         <input name="price" type="number" step="0.01" min="0" placeholder="Price" value={form.price} onChange={handleChange} required />
         <input name="stock" type="number" min="0" placeholder="Stock" value={form.stock} onChange={handleChange} required />
-        <input name="image_url" type="url" placeholder="Image URL (optional)" value={form.image_url} onChange={handleChange} />
         <select name="category" value={form.category} onChange={handleChange}>
           <option value="">No category</option>
           {categories.map((c) => (
             <option key={c.id} value={c.id}>{c.name}</option>
           ))}
         </select>
+
+        <div className="upload-box">
+          <label className="muted">Product image</label>
+          <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleFile} disabled={uploading} />
+          {uploading && <p className="muted">Uploading...</p>}
+          {form.image_url && !uploading && (
+            <div className="preview">
+              <img src={optimized(form.image_url, 300)} alt="Preview" />
+              <button type="button" className="btn secondary" onClick={() => setForm({ ...form, image_url: "" })}>
+                Remove image
+              </button>
+            </div>
+          )}
+        </div>
+
         {error && <p className="error">{error}</p>}
         {message && <p className="success">{message}</p>}
         <div>
-          <button className="btn">{editingId ? "Save changes" : "Create product"}</button>{" "}
+          <button className="btn" disabled={uploading}>
+            {editingId ? "Save changes" : "Create product"}
+          </button>{" "}
           {editingId && <button type="button" className="btn secondary" onClick={cancelEdit}>Cancel</button>}
         </div>
       </form>
@@ -125,7 +168,7 @@ export default function VendorDashboard() {
       {products.map((p) => (
         <div className="row" key={p.id}>
           <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-            {p.image_url && <img className="mini-thumb" src={p.image_url} alt={p.title} />}
+            {p.image_url && <img className="mini-thumb" src={optimized(p.image_url, 100)} alt={p.title} />}
             <div>
               <strong>{p.title}</strong>
               <p className="muted">₹{Number(p.price).toFixed(2)} · {p.stock} in stock · {p.category_name || "No category"}</p>
