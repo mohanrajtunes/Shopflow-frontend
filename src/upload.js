@@ -15,7 +15,6 @@ export async function uploadImage(file) {
   const json = await res.json();
   return json.secure_url;
 }
-
 export function optimized(url, width = 600) {
   if (!url || !url.includes("/upload/")) return url;
   return url.replace("/upload/", `/upload/w_${width},c_limit,q_auto,f_auto/`);
