@@ -20,7 +20,7 @@ body {
 a { color: var(--accent); text-decoration: none; }
 h1, h2 { margin-bottom: 16px; }
 
-.container { max-width: 1000px; margin: 0 auto; padding: 24px 16px; }
+.container { max-width: 1150px; margin: 0 auto; padding: 24px 16px; }
 
 /* ===== Glowing background ===== */
 body::before {
