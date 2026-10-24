@@ -46,7 +46,7 @@ A full stack multi-vendor e-commerce app. Customers browse and buy, vendors mana
 ![Orders](screenshots/orders.png)
 
 ### Vendor dashboard
-![Vendor dashboard](screenshots/VendorDashboard.png)
+![Vendor dashboard](screenshots/Vendor-Dashboard.png)
 
 ## Run locally
 1. Start the [backend](https://github.com/mohanrajtunes/shopflow-backend).
