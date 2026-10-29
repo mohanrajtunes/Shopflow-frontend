@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { money } from "../format";
 import api, { errorText } from "../api";
 import { useAuth } from "../AuthContext";
 import { uploadImage, optimized } from "../upload";
@@ -125,66 +126,94 @@ export default function VendorDashboard() {
 
   return (
     <div>
-      <h1>My products</h1>
+      <div className="page-head">
+        <h1>My products</h1>
+      </div>
 
-      <form className="card" onSubmit={handleSubmit} style={{ display: "grid", gap: 10, marginBottom: 24 }}>
-        <h3>{editingId ? "Edit product" : "Add a product"}</h3>
-        <input name="title" placeholder="Title" value={form.title} onChange={handleChange} required />
-        <textarea name="description" placeholder="Description" rows={3} value={form.description} onChange={handleChange} required />
-        <input name="price" type="number" step="0.01" min="0" placeholder="Price" value={form.price} onChange={handleChange} required />
-        <input name="stock" type="number" min="0" placeholder="Stock" value={form.stock} onChange={handleChange} required />
-        <select name="category" value={form.category} onChange={handleChange}>
-          <option value="">No category</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
+      <div className="dash">
+        <form className="panel" onSubmit={handleSubmit}>
+          <h3>{editingId ? "Edit product" : "Add a product"}</h3>
+          <label>
+            <span className="lbl">Title</span>
+            <input name="title" placeholder="Product title" value={form.title} onChange={handleChange} required />
+          </label>
+          <label>
+            <span className="lbl">Description</span>
+            <textarea name="description" placeholder="What is it?" rows={3} value={form.description} onChange={handleChange} required />
+          </label>
+          <div className="two">
+            <label>
+              <span className="lbl">Price (₹)</span>
+              <input name="price" type="number" step="0.01" min="0" placeholder="0.00" value={form.price} onChange={handleChange} required />
+            </label>
+            <label>
+              <span className="lbl">Stock</span>
+              <input name="stock" type="number" min="0" placeholder="0" value={form.stock} onChange={handleChange} required />
+            </label>
+          </div>
+          <label>
+            <span className="lbl">Category</span>
+            <select name="category" value={form.category} onChange={handleChange}>
+              <option value="">No category</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </label>
 
-        <div className="upload-box">
-          <label className="muted">Product image</label>
-          <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleFile} disabled={uploading} />
-          {uploading && <p className="muted">Uploading...</p>}
-          {form.image_url && !uploading && (
-            <div className="preview">
-              <img src={optimized(form.image_url, 300)} alt="Preview" />
-              <button type="button" className="btn secondary" onClick={() => setForm({ ...form, image_url: "" })}>
-                Remove image
-              </button>
+          <div className="upload-box">
+            <span className="lbl">Product image</span>
+            <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleFile} disabled={uploading} />
+            {uploading && <p className="muted">Uploading...</p>}
+            {form.image_url && !uploading && (
+              <div className="preview">
+                <img src={optimized(form.image_url, 300)} alt="Preview" />
+                <button type="button" className="btn ghost small" onClick={() => setForm({ ...form, image_url: "" })}>
+                  Remove image
+                </button>
+              </div>
+            )}
+          </div>
+
+          {error && <p className="error">{error}</p>}
+          {message && <p className="success">{message}</p>}
+          <div className="form-actions">
+            <button className="btn solid" disabled={uploading}>
+              {editingId ? "Save changes" : "Create product"}
+            </button>
+            {editingId && <button type="button" className="btn ghost" onClick={cancelEdit}>Cancel</button>}
+          </div>
+        </form>
+
+        <div className="my-list">
+          {products.length === 0 && (
+            <div className="empty">
+              <h2>No products yet.</h2>
+              <p className="muted">You haven't added any products yet. Use the form to add your first one.</p>
             </div>
           )}
-        </div>
-
-        {error && <p className="error">{error}</p>}
-        {message && <p className="success">{message}</p>}
-        <div>
-          <button className="btn" disabled={uploading}>
-            {editingId ? "Save changes" : "Create product"}
-          </button>{" "}
-          {editingId && <button type="button" className="btn secondary" onClick={cancelEdit}>Cancel</button>}
-        </div>
-      </form>
-
-      {products.length === 0 && <p className="muted">You haven't added any products yet.</p>}
-      {products.map((p) => (
-        <div className="row" key={p.id}>
-          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-            {p.image_url && <img className="mini-thumb" src={optimized(p.image_url, 100)} alt={p.title} />}
-            <div>
-              <strong>{p.title}</strong>
-              <p className="muted">₹{Number(p.price).toFixed(2)} · {p.stock} in stock · {p.category_name || "No category"}</p>
+          {products.map((p) => (
+            <div className="my-item" key={p.id}>
+              <div className="mi-thumb" data-c={p.id % 4}>
+                {p.image_url ? <img src={optimized(p.image_url, 100)} alt={p.title} /> : <span>{(p.category_name || p.title)[0].toUpperCase()}</span>}
+              </div>
+              <div className="mi-info">
+                <strong>{p.title}</strong>
+                <p className="muted">{money(p.price)} · {p.stock} in stock · {p.category_name || "No category"}</p>
+              </div>
+              <div className="mi-actions">
+                <button className="btn ghost small" onClick={() => startEdit(p)}>Edit</button>
+                <button className="btn danger small" onClick={() => removeProduct(p)}>Delete</button>
+              </div>
             </div>
-          </div>
-          <div>
-            <button className="btn secondary" onClick={() => startEdit(p)}>Edit</button>{" "}
-            <button className="btn danger" onClick={() => removeProduct(p)}>Delete</button>
+          ))}
+
+          <div className="pagination">
+            <button className="btn ghost" disabled={page === 1} onClick={() => setPage(page - 1)}>← Previous</button>
+            <span className="lbl">Page {page}</span>
+            <button className="btn ghost" disabled={!hasNext} onClick={() => setPage(page + 1)}>Next →</button>
           </div>
         </div>
-      ))}
-
-      <div className="pagination">
-        <button className="btn secondary" disabled={page === 1} onClick={() => setPage(page - 1)}>Previous</button>
-        <span>Page {page}</span>
-        <button className="btn secondary" disabled={!hasNext} onClick={() => setPage(page + 1)}>Next</button>
       </div>
     </div>
   );

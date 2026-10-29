@@ -1,13 +1,15 @@
 import axios from "axios";
 
 const API_URL = import.meta.env.VITE_API_URL;
-const api = axios.create({ baseURL: API_URL});
+const api = axios.create({ baseURL: API_URL });
 
+// Before every request: attach the access token if we have one
 api.interceptors.request.use((config) => {
-    const token = localStorage.getItem("access");
-    if (token) config.headers.Authorization = `Bearer ${token}`;
-    return config;
+  const token = localStorage.getItem("access");
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
 });
+
 // After every response: if the token expired (401), refresh it once and retry
 let refreshing = null;
 

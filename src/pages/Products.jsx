@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { money } from "../format";
 import api, { errorText } from "../api";
 import { useAuth } from "../AuthContext";
 import { optimized } from "../upload";
@@ -10,13 +11,19 @@ const emptyFilters = { search: "", category: "", min_price: "", max_price: "", o
 export default function Products() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlCategory = searchParams.get("category") || "";
+  const startFilters = { ...emptyFilters, category: urlCategory };
 
+  const [featured, setFeatured] = useState([]);
+  const featuredLoaded = useRef(false);
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [count, setCount] = useState(0);
   const [page, setPage] = useState(1);
-  const [form, setForm] = useState(emptyFilters);
-  const [filters, setFilters] = useState(emptyFilters);
+  const [form, setForm] = useState(startFilters);
+  const [filters, setFilters] = useState(startFilters);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -39,10 +46,28 @@ export default function Products() {
       .then(({ data }) => {
         setProducts(data.results);
         setCount(data.count);
+        const unfiltered = Object.entries(filters).every(([k, v]) => v === emptyFilters[k]);
+        if (!featuredLoaded.current && unfiltered && page === 1) {
+          featuredLoaded.current = true;
+          setFeatured(data.results.slice(0, 3));
+        }
       })
       .catch((err) => setError(errorText(err)))
       .finally(() => setLoading(false));
   }, [page, filters]);
+
+  // Keep the category filter in sync with the URL (navbar links, back button)
+  useEffect(() => {
+    setFilters((f) => (f.category === urlCategory ? f : { ...f, category: urlCategory }));
+    setForm((f) => (f.category === urlCategory ? f : { ...f, category: urlCategory }));
+    setPage(1);
+  }, [urlCategory]);
+
+  useEffect(() => {
+    if (location.hash === "#shop") {
+      document.getElementById("shop")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [location.hash, location.search]);
 
   // Toast disappears after 2.5 seconds
   useEffect(() => {
@@ -65,6 +90,15 @@ export default function Products() {
     setForm(emptyFilters);
     setFilters(emptyFilters);
     setPage(1);
+    setSearchParams({});
+  }
+
+  function selectCategory(id) {
+    const next = { ...filters, category: id };
+    setForm(next);
+    setFilters(next);
+    setPage(1);
+    setSearchParams(id ? { category: id } : {});
   }
 
   async function addToCart(product) {
@@ -73,6 +107,7 @@ export default function Products() {
     try {
       await api.post("/api/cart/", { product: product.id, quantity: 1 });
       setMessage(`Added "${product.title}" to your cart`);
+      window.dispatchEvent(new Event("cart:changed"));
     } catch (err) {
       if (err.response?.status === 400) {
         try {
@@ -81,6 +116,7 @@ export default function Products() {
           if (item) {
             await api.patch(`/api/cart/${item.id}/`, { quantity: item.quantity + 1 });
             setMessage(`Updated "${product.title}" quantity in your cart`);
+            window.dispatchEvent(new Event("cart:changed"));
             return;
           }
         } catch (err2) {
@@ -93,91 +129,144 @@ export default function Products() {
 
   const totalPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
 
+  const activeCat = categories.find((c) => String(c.id) === String(filters.category));
+
   return (
     <div>
       <section className="hero">
-        <h1>Shop from independent vendors</h1>
-        <p className="muted">Browse products, add them to your cart and check out securely.</p>
+        <div className="hero-copy">
+          <h1>Shop from independent vendors.</h1>
+          <p className="lead">
+            Clothing, electronics, home and books, sold directly by the people who make and curate them.
+          </p>
+          <div className="hero-cta">
+            <a className="btn light-solid" href="#shop">Shop all products</a>
+            {!user && <Link className="btn outline-light" to="/register">Create account</Link>}
+          </div>
+        </div>
+        <div className="collage" aria-label="New in the shop">
+          {(featured.length ? featured : [null, null, null]).map((p, i) => (
+            <a key={p ? p.id : i} href="#shop" className={`tile t${i}`} data-c={p ? p.id % 4 : i}>
+              {p && (
+                <>
+                  <span className="tile-letter">{(p.category_name || p.title)[0].toUpperCase()}</span>
+                  {p.image_url && (
+                    <img
+                      src={optimized(p.image_url, 700)}
+                      alt=""
+                      onError={(e) => { e.currentTarget.style.display = "none"; }}
+                    />
+                  )}
+                  <span className="tile-cap">
+                    <b>{p.title}</b>
+                    <em>{money(p.price)}</em>
+                  </span>
+                </>
+              )}
+            </a>
+          ))}
+        </div>
       </section>
 
+      <div className="section-head" id="shop">
+        <h2>{activeCat ? activeCat.name : "All products"}</h2>
+        <p className="muted">{loading ? "" : `${count} ${count === 1 ? "product" : "products"}`}</p>
+      </div>
+
+      <div className="pills" role="tablist" aria-label="Filter by category">
+        <button className={!filters.category ? "pill on" : "pill"} onClick={() => selectCategory("")}>All</button>
+        {categories.map((c) => (
+          <button
+            key={c.id}
+            className={String(filters.category) === String(c.id) ? "pill on" : "pill"}
+            onClick={() => selectCategory(String(c.id))}
+          >
+            {c.name}
+          </button>
+        ))}
+      </div>
+
       <form className="filters" onSubmit={applyFilters}>
-        <input name="search" placeholder="Search..." value={form.search} onChange={handleChange} />
-        <select name="category" value={form.category} onChange={handleChange}>
-          <option value="">All categories</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
-        <input name="min_price" type="number" placeholder="Min price" value={form.min_price} onChange={handleChange} style={{ width: 110 }} />
-        <input name="max_price" type="number" placeholder="Max price" value={form.max_price} onChange={handleChange} style={{ width: 110 }} />
-        <select name="ordering" value={form.ordering} onChange={handleChange}>
+        <input name="search" type="search" placeholder="Search products" value={form.search} onChange={handleChange} aria-label="Search" />
+        <input className="narrow" name="min_price" type="number" placeholder="Min ₹" value={form.min_price} onChange={handleChange} aria-label="Minimum price" />
+        <input className="narrow" name="max_price" type="number" placeholder="Max ₹" value={form.max_price} onChange={handleChange} aria-label="Maximum price" />
+        <select name="ordering" value={form.ordering} onChange={handleChange} aria-label="Sort">
           <option value="-created_at">Newest</option>
           <option value="price">Price: low to high</option>
           <option value="-price">Price: high to low</option>
         </select>
-        <button className="btn">Apply</button>
-        <button type="button" className="btn secondary" onClick={resetFilters}>Reset</button>
+        <button className="btn solid">Apply</button>
+        <button type="button" className="btn ghost" onClick={resetFilters}>Reset</button>
       </form>
 
-      {message && <div className="toast">{message}</div>}
+      {message && (
+        <div className="toast" role="status">
+          <span>{message}</span>
+          {user?.role === "customer" && <Link to="/cart">View cart</Link>}
+        </div>
+      )}
       {error && <p className="error">{error}</p>}
 
       {loading && (
         <div className="grid">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="card skeleton" />
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="pcard skeleton"><div className="pimg" /><div className="sk-line" /><div className="sk-line short" /></div>
           ))}
         </div>
       )}
 
       {!loading && !error && products.length === 0 && (
-        <p className="muted">No products found.</p>
+        <div className="empty">
+          <h2>No products found</h2>
+          <p className="muted">Try a different search or clear your filters.</p>
+          <button className="btn solid" onClick={resetFilters}>Clear filters</button>
+        </div>
       )}
 
       {!loading && (
         <div className="grid">
-          {products.map((p, i) => (
-            <div
-              className="card product-card fade-up"
-              style={{ animationDelay: `${i * 70}ms` }}
-              key={p.id}
-            >
-              {p.image_url ? (
-                <img
-                  className="thumb-img"
-                  src={optimized(p.image_url)}
-                  alt={p.title}
-                  loading="lazy"
-                  onError={(e) => { e.currentTarget.style.display = "none"; }}
-                />
-              ) : (
-                <div className="thumb">{(p.category_name || p.title)[0].toUpperCase()}</div>
-              )}
-              <span className="badge">{p.category_name || "General"}</span>
-              <h3>{p.title}</h3>
-              <p className="muted desc">{p.description}</p>
-              <p className="muted">Sold by {p.vendor_username}</p>
-              <div className="card-footer">
-                <span className="price">₹{Number(p.price).toFixed(2)}</span>
-                <span className={p.stock <= 3 ? "badge low" : "badge"}>
-                  {p.stock === 0 ? "Out of stock" : p.stock <= 3 ? `Only ${p.stock} left` : "In stock"}
-                </span>
+          {products.map((p) => (
+            <article className="pcard" key={p.id}>
+              <div className="pimg" data-c={p.id % 4}>
+                <span className="pletter">{(p.category_name || p.title)[0].toUpperCase()}</span>
+                {p.image_url && (
+                  <img
+                    src={optimized(p.image_url)}
+                    alt={p.title}
+                    loading="lazy"
+                    onError={(e) => { e.currentTarget.style.display = "none"; }}
+                  />
+                )}
+                {p.stock <= 3 && (
+                  <span className={p.stock === 0 ? "stock out" : "stock low"}>
+                    {p.stock === 0 ? "Sold out" : `Only ${p.stock} left`}
+                  </span>
+                )}
+                {(!user || user.role === "customer") && (
+                  <button className="quick" disabled={p.stock === 0} onClick={() => addToCart(p)}>
+                    {p.stock === 0 ? "Sold out" : "Add to cart"}
+                  </button>
+                )}
               </div>
-              {(!user || user.role === "customer") && (
-                <button className="btn" disabled={p.stock === 0} onClick={() => addToCart(p)}>
-                  Add to cart
-                </button>
-              )}
-            </div>
+              <div className="pinfo">
+                <div>
+                  <h3>{p.title}</h3>
+                  <p className="pcat">{p.category_name || "General"} · by {p.vendor_username}</p>
+                </div>
+                <span className="price">{money(p.price)}</span>
+              </div>
+            </article>
           ))}
         </div>
       )}
 
-      <div className="pagination">
-        <button className="btn secondary" disabled={page === 1} onClick={() => setPage(page - 1)}>Previous</button>
-        <span>Page {page} of {totalPages}</span>
-        <button className="btn secondary" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>Next</button>
-      </div>
+      {totalPages > 1 && (
+        <div className="pagination">
+          <button className="btn ghost" disabled={page === 1} onClick={() => setPage(page - 1)}>Previous</button>
+          <span>Page {page} of {totalPages}</span>
+          <button className="btn ghost" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>Next</button>
+        </div>
+      )}
     </div>
   );
 }

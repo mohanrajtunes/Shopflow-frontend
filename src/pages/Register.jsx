@@ -27,18 +27,36 @@ export default function Register() {
   }
 
   return (
-    <form className="form" onSubmit={handleSubmit}>
-      <h1>Create account</h1>
-      <input name="username" placeholder="Username" value={form.username} onChange={handleChange} required />
-      <input name="email" type="email" placeholder="Email" value={form.email} onChange={handleChange} required />
-      <input name="password" type="password" placeholder="Password" value={form.password} onChange={handleChange} required />
-      <select name="role" value={form.role} onChange={handleChange}>
-        <option value="customer">Customer (buy products)</option>
-        <option value="vendor">Vendor (sell products)</option>
-      </select>
-      {error && <p className="error">{error}</p>}
-      <button className="btn" disabled={loading}>{loading ? "Creating..." : "Register"}</button>
-      <p className="muted">Already registered? <Link to="/login">Login</Link></p>
-    </form>
+    <div className="auth">
+      <div className="auth-art alt">
+        <h2>Buy or<br />sell.</h2>
+        <p>Customers browse and check out. Vendors list and manage their own products.</p>
+      </div>
+      <form className="form" onSubmit={handleSubmit}>
+        <h1>Create account</h1>
+        <label>
+          <span className="lbl">Username</span>
+          <input name="username" placeholder="Choose a username" value={form.username} onChange={handleChange} autoComplete="username" required />
+        </label>
+        <label>
+          <span className="lbl">Email</span>
+          <input name="email" type="email" placeholder="you@example.com" value={form.email} onChange={handleChange} autoComplete="email" required />
+        </label>
+        <label>
+          <span className="lbl">Password</span>
+          <input name="password" type="password" placeholder="Choose a password" value={form.password} onChange={handleChange} autoComplete="new-password" required />
+        </label>
+        <label>
+          <span className="lbl">I want to</span>
+          <select name="role" value={form.role} onChange={handleChange}>
+            <option value="customer">Customer (buy products)</option>
+            <option value="vendor">Vendor (sell products)</option>
+          </select>
+        </label>
+        {error && <p className="error">{error}</p>}
+        <button className="btn solid block" disabled={loading}>{loading ? "Creating..." : "Register"}</button>
+        <p className="muted">Already registered? <Link to="/login">Login</Link></p>
+      </form>
+    </div>
   );
 }

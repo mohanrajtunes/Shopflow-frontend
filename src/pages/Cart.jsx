@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { money } from "../format";
 import api, { errorText } from "../api";
 
 export default function Cart() {
@@ -13,6 +14,7 @@ export default function Cart() {
     try {
       const { data } = await api.get("/api/cart/");
       setItems(data.results ?? data);
+      window.dispatchEvent(new Event("cart:changed"));
     } catch (err) {
       setError(errorText(err));
     } finally {
@@ -59,37 +61,56 @@ export default function Cart() {
   }
 
   const total = items.reduce((sum, i) => sum + Number(i.subtotal), 0);
+  const units = items.reduce((sum, i) => sum + i.quantity, 0);
 
   if (loading) return <p className="muted">Loading...</p>;
 
   return (
     <div>
-      <h1>Your cart</h1>
+      <div className="page-head">
+        <h1>Your cart</h1>
+      </div>
       {error && <p className="error">{error}</p>}
-      {items.length === 0 && <p className="muted">Your cart is empty.</p>}
 
-      {items.map((item) => (
-        <div className="row cart-row" key={item.id}>
-          <div>
-            <strong>{item.product_title}</strong>
-            <p className="muted">₹{Number(item.product_price).toFixed(2)} each</p>
-          </div>
-          <div>
-            <button className="btn secondary" onClick={() => changeQty(item, item.quantity - 1)}>−</button>
-            <span style={{ margin: "0 12px" }}>{item.quantity}</span>
-            <button className="btn secondary" onClick={() => changeQty(item, item.quantity + 1)}>+</button>
-          </div>
-          <div>₹{Number(item.subtotal).toFixed(2)}</div>
-          <button className="btn danger" onClick={() => removeItem(item)}>Remove</button>
+      {items.length === 0 && (
+        <div className="empty">
+          <h2>Your cart is empty.</h2>
+          <p className="muted">Add something from the shop and it will show up here.</p>
+          <Link className="btn solid" to="/">Browse products</Link>
         </div>
-      ))}
+      )}
 
       {items.length > 0 && (
-        <div style={{ marginTop: 24 }}>
-          <h2>Total: ₹{total.toFixed(2)}</h2>
-          <button className="btn" disabled={busy} onClick={checkout}>
-            {busy ? "Placing order..." : "Checkout"}
-          </button>
+        <div className="cart-layout">
+          <div className="cart-list">
+            {items.map((item) => (
+              <div className="cart-item" key={item.id}>
+                <div className="ci-info">
+                  <strong>{item.product_title}</strong>
+                  <p className="muted">{money(item.product_price)} each</p>
+                </div>
+                <div className="qty">
+                  <button aria-label="Decrease quantity" onClick={() => changeQty(item, item.quantity - 1)}>−</button>
+                  <span>{item.quantity}</span>
+                  <button aria-label="Increase quantity" onClick={() => changeQty(item, item.quantity + 1)}>+</button>
+                </div>
+                <div className="ci-sub">{money(item.subtotal)}</div>
+                <button className="btn danger small" onClick={() => removeItem(item)}>Remove</button>
+              </div>
+            ))}
+          </div>
+
+          <aside className="summary">
+            <p className="lbl">Order summary</p>
+            <div className="sum-row"><span>Items</span><span>{units}</span></div>
+            <div className="sum-total">
+              <span>Total</span>
+              <strong>{money(total)}</strong>
+            </div>
+            <button className="btn solid block" disabled={busy} onClick={checkout}>
+              {busy ? "Placing order..." : "Checkout"}
+            </button>
+          </aside>
         </div>
       )}
     </div>
