@@ -14,7 +14,8 @@ export default function Products() {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const urlCategory = searchParams.get("category") || "";
-  const startFilters = { ...emptyFilters, category: urlCategory };
+  const urlSearch = searchParams.get("search") || "";
+  const startFilters = { ...emptyFilters, category: urlCategory, search: urlSearch };
 
   const [featured, setFeatured] = useState([]);
   const featuredLoaded = useRef(false);
@@ -58,10 +59,11 @@ export default function Products() {
 
   // Keep the category filter in sync with the URL (navbar links, back button)
   useEffect(() => {
-    setFilters((f) => (f.category === urlCategory ? f : { ...f, category: urlCategory }));
-    setForm((f) => (f.category === urlCategory ? f : { ...f, category: urlCategory }));
+    const sync = (f) => (f.category === urlCategory && f.search === urlSearch ? f : { ...f, category: urlCategory, search: urlSearch });
+    setFilters(sync);
+    setForm(sync);
     setPage(1);
-  }, [urlCategory]);
+  }, [urlCategory, urlSearch]);
 
   useEffect(() => {
     if (location.hash === "#shop") {
@@ -84,6 +86,10 @@ export default function Products() {
     e.preventDefault();
     setPage(1);
     setFilters(form);
+    const qs = {};
+    if (form.category) qs.category = form.category;
+    if (form.search) qs.search = form.search;
+    setSearchParams(qs);
   }
 
   function resetFilters() {
@@ -98,7 +104,10 @@ export default function Products() {
     setForm(next);
     setFilters(next);
     setPage(1);
-    setSearchParams(id ? { category: id } : {});
+    const qs = {};
+    if (id) qs.category = id;
+    if (filters.search) qs.search = filters.search;
+    setSearchParams(qs);
   }
 
   async function addToCart(product) {
@@ -137,7 +146,7 @@ export default function Products() {
         <div className="hero-copy">
           <h1>Shop from independent vendors.</h1>
           <p className="lead">
-            Clothing, electronics, home and books, sold directly by the people who make and curate them.
+            Fashion, electronics, beauty, books and everyday essentials, sold directly by independent sellers.
           </p>
           <div className="hero-cta">
             <a className="btn light-solid" href="#shop">Shop all products</a>
@@ -169,7 +178,7 @@ export default function Products() {
       </section>
 
       <div className="section-head" id="shop">
-        <h2>{activeCat ? activeCat.name : "All products"}</h2>
+        <h2>{filters.search ? `Results for “${filters.search}”` : activeCat ? activeCat.name : "All products"}</h2>
         <p className="muted">{loading ? "" : `${count} ${count === 1 ? "product" : "products"}`}</p>
       </div>
 
@@ -187,7 +196,6 @@ export default function Products() {
       </div>
 
       <form className="filters" onSubmit={applyFilters}>
-        <input name="search" type="search" placeholder="Search products" value={form.search} onChange={handleChange} aria-label="Search" />
         <input className="narrow" name="min_price" type="number" placeholder="Min ₹" value={form.min_price} onChange={handleChange} aria-label="Minimum price" />
         <input className="narrow" name="max_price" type="number" placeholder="Max ₹" value={form.max_price} onChange={handleChange} aria-label="Maximum price" />
         <select name="ordering" value={form.ordering} onChange={handleChange} aria-label="Sort">

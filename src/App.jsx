@@ -45,7 +45,7 @@ export default function App() {
         <div className="foot-inner">
           <div>
             <p className="foot-logo">ShopFlow</p>
-            <p className="foot-note">Clothing, electronics, home and books from independent sellers.</p>
+            <p className="foot-note">Fashion, electronics, beauty, books and everyday essentials from independent sellers.</p>
           </div>
           <div className="foot-links">
             <Link to="/">Shop</Link>

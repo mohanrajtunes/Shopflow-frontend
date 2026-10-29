@@ -11,6 +11,25 @@ export default function Navbar() {
   const location = useLocation();
   const [categories, setCategories] = useState([]);
   const [cartCount, setCartCount] = useState(0);
+  const params = new URLSearchParams(location.search);
+  const [q, setQ] = useState(params.get("search") || "");
+  const [cat, setCat] = useState(params.get("category") || "");
+
+  // Keep the search box in step with the URL (e.g. after clicking a category pill)
+  useEffect(() => {
+    const p = new URLSearchParams(location.search);
+    setQ(p.get("search") || "");
+    setCat(p.get("category") || "");
+  }, [location.search]);
+
+  function handleSearch(e) {
+    e.preventDefault();
+    const p = new URLSearchParams();
+    if (q.trim()) p.set("search", q.trim());
+    if (cat) p.set("category", cat);
+    const qs = p.toString();
+    navigate(`/${qs ? `?${qs}` : ""}#shop`);
+  }
 
   useEffect(() => {
     api.get("/api/categories/")
@@ -42,25 +61,30 @@ export default function Navbar() {
     navigate("/login");
   }
 
-  const activeCategory = new URLSearchParams(location.search).get("category");
-
   return (
     <header className="navbar">
       <Link to="/" className="logo" aria-label="ShopFlow home">
         ShopFlow<i aria-hidden="true" />
       </Link>
 
-      <nav className="cats" aria-label="Categories">
-        {categories.slice(0, 5).map((c) => (
-          <Link
-            key={c.id}
-            to={`/?category=${c.id}#shop`}
-            className={location.pathname === "/" && String(c.id) === activeCategory ? "active" : ""}
-          >
-            {c.name}
-          </Link>
-        ))}
-      </nav>
+      <form className="hsearch" role="search" onSubmit={handleSearch}>
+        <select value={cat} onChange={(e) => setCat(e.target.value)} aria-label="Category">
+          <option value="">All</option>
+          {categories.map((c) => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </select>
+        <input
+          type="search"
+          placeholder="Search products"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          aria-label="Search products"
+        />
+        <button type="submit" aria-label="Search">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
+        </button>
+      </form>
 
       <nav className="account" aria-label="Account">
         {user?.role === "vendor" && <NavLink to="/dashboard" className={linkClass}>My products</NavLink>}
